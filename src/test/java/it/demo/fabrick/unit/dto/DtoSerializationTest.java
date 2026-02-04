@@ -1,6 +1,9 @@
 package it.demo.fabrick.unit.dto;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.math.BigDecimal;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,8 +43,9 @@ class DtoSerializationTest {
 
 		assertEquals("OK", dto.getStatus());
 		assertEquals("2023-01-15", dto.getPayload().getDate());
-		assertEquals(1000.50, dto.getPayload().getBalance());
-		assertEquals(850.25, dto.getPayload().getAvailableBalance());
+		// Use compareTo for BigDecimal comparison
+		assertEquals(0, dto.getPayload().getBalance().compareTo(new BigDecimal("1000.50")));
+		assertEquals(0, dto.getPayload().getAvailableBalance().compareTo(new BigDecimal("850.25")));
 		assertEquals("EUR", dto.getPayload().getCurrency());
 	}
 
@@ -65,7 +69,8 @@ class DtoSerializationTest {
 		assertEquals("OK", dto.getStatus());
 		assertEquals(2, dto.getPayload().getList().size());
 		assertEquals("T001", dto.getPayload().getList().get(0).getTransactionId());
-		assertEquals(100.00, dto.getPayload().getList().get(0).getAmount());
+		// Use compareTo for BigDecimal comparison
+		assertEquals(0, dto.getPayload().getList().get(0).getAmount().compareTo(new BigDecimal("100.00")));
 	}
 
 	@Test

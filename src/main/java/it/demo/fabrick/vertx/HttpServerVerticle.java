@@ -18,6 +18,9 @@ import io.reactiverse.contextual.logging.ContextualData;
 import it.demo.fabrick.ContoDemoApplication;
 import it.demo.fabrick.dto.rest.BonificoRestRequestDto;
 import it.demo.fabrick.error.ErrorCode;
+import it.demo.fabrick.utils.ApiConstants;
+import it.demo.fabrick.utils.EventBusConstants;
+import it.demo.fabrick.utils.StatusConstants;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -43,17 +46,7 @@ public class HttpServerVerticle extends AbstractVerticle {
         this.accountId = accountId;
     }
 
-    // Hardcoded API endpoints (from CONTO_INDIRIZZI table for SVIL environment)
-    private static final String SALDO_URL_TEMPLATE =
-        "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/balance";
-
-    private static final String TRANSACTIONS_URL_TEMPLATE =
-        "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/transactions?fromAccountingDate={fromDate}&toAccountingDate={toDate}";
-
-    private static final String BONIFICO_URL_TEMPLATE =
-        "https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/payments/money-transfers";
-
-    private static final String API_BASE = "/api/accounts";
+    // API endpoints from ApiConstants
 
     @Override
     public void start(Promise<Void> startFuture) {
@@ -71,9 +64,9 @@ public class HttpServerVerticle extends AbstractVerticle {
         router.get("/swagger").handler(this::serveSwaggerUi);
 
         // Register business endpoints
-        router.get(API_BASE + "/balance").handler(this::handleBalance);
-        router.get(API_BASE + "/transactions").handler(this::handleTransactions);
-        router.post(API_BASE + "/payments/money-transfers").handler(this::handleMoneyTransfer);
+        router.get(ApiConstants.REST_BALANCE_ENDPOINT).handler(this::handleBalance);
+        router.get(ApiConstants.REST_TRANSACTIONS_ENDPOINT).handler(this::handleTransactions);
+        router.post(ApiConstants.REST_MONEY_TRANSFER_ENDPOINT).handler(this::handleMoneyTransfer);
 
         server.requestHandler(router).listen(httpPort, http -> {
             if (http.succeeded()) {
@@ -96,14 +89,14 @@ public class HttpServerVerticle extends AbstractVerticle {
 
         log.info("Received balance request for accountId: {}", accountId);
 
-        String apiUrl = SALDO_URL_TEMPLATE.replace("{accountId}", accountId);
+        String apiUrl = ApiConstants.BALANCE_URL_TEMPLATE.replace("{accountId}", accountId);
 
         JsonObject message = new JsonObject()
             .put("accountId", accountId)
             .put("indirizzo", apiUrl)
             .put("requestId", requestId);
 
-        vertx.eventBus().request("saldo_bus", message,
+        vertx.eventBus().request(EventBusConstants.SALDO_BUS, message,
             ContoDemoApplication.getDefaultDeliverOptions(), ar -> {
                 if (ar.succeeded()) {
                     String result = (String) ar.result().body();
@@ -156,7 +149,7 @@ public class HttpServerVerticle extends AbstractVerticle {
         log.info("Received transactions request for accountId: {}, from: {}, to: {}",
             accountId, fromDate, toDate);
 
-        String apiUrl = TRANSACTIONS_URL_TEMPLATE
+        String apiUrl = ApiConstants.TRANSACTIONS_URL_TEMPLATE
             .replace("{accountId}", accountId)
             .replace("{fromDate}", fromDate)
             .replace("{toDate}", toDate);
@@ -166,7 +159,7 @@ public class HttpServerVerticle extends AbstractVerticle {
             .put("indirizzo", apiUrl)
             .put("requestId", requestId);
 
-        vertx.eventBus().request("lista_bus", message,
+        vertx.eventBus().request(EventBusConstants.LISTA_BUS, message,
             ContoDemoApplication.getDefaultDeliverOptions(), ar -> {
                 if (ar.succeeded()) {
                     String result = (String) ar.result().body();
@@ -199,14 +192,14 @@ public class HttpServerVerticle extends AbstractVerticle {
             ObjectMapper mapper = objectMapper;
             BonificoRestRequestDto request = mapper.readValue(body, BonificoRestRequestDto.class);
 
-            // Basic validation
-            if (request.getAmount() <= 0) {
+            // Basic validation - use BigDecimal comparison
+            if (request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
                 log.warn("Invalid transfer amount: {} for requestId: {}", request.getAmount(), requestId);
                 sendValidationError(ctx, "Invalid amount: must be greater than zero", requestId);
                 return;
             }
 
-            String apiUrl = BONIFICO_URL_TEMPLATE.replace("{accountId}", accountId);
+            String apiUrl = ApiConstants.MONEY_TRANSFER_URL_TEMPLATE.replace("{accountId}", accountId);
 
             // Convert the request object to JSON string for event bus transport
             String requestJson = mapper.writeValueAsString(request);
@@ -217,7 +210,7 @@ public class HttpServerVerticle extends AbstractVerticle {
                 .put("requestId", requestId)
                 .put("request", requestJson);
 
-            vertx.eventBus().request("bonifico_bus", message,
+            vertx.eventBus().request(EventBusConstants.BONIFICO_BUS, message,
                 ContoDemoApplication.getDefaultDeliverOptions(), ar -> {
                     if (ar.succeeded()) {
                         String result = (String) ar.result().body();
@@ -262,8 +255,8 @@ public class HttpServerVerticle extends AbstractVerticle {
                     .setStatusCode(404)
                     .putHeader("Content-Type", "application/json")
                     .end(new JsonObject()
-                        .put("status", "ERROR")
-                        .put("message", "OpenAPI specification not found")
+                        .put("status", StatusConstants.ERROR)
+                        .put("message", StatusConstants.ERROR_OPENAPI_NOT_FOUND)
                         .encode());
             }
         } catch (Exception e) {
@@ -272,8 +265,8 @@ public class HttpServerVerticle extends AbstractVerticle {
                 .setStatusCode(500)
                 .putHeader("Content-Type", "application/json")
                 .end(new JsonObject()
-                    .put("status", "ERROR")
-                    .put("message", "Error reading OpenAPI specification: " + e.getMessage())
+                    .put("status", StatusConstants.ERROR)
+                    .put("message", StatusConstants.ERROR_OPENAPI_READ_PREFIX + e.getMessage())
                     .encode());
         }
     }
@@ -365,7 +358,7 @@ public class HttpServerVerticle extends AbstractVerticle {
         }
 
         JsonObject errorResponse = new JsonObject()
-            .put("status", "ERROR")
+            .put("status", StatusConstants.ERROR)
             .put("requestId", requestId)
             .put("message", errorMessage);
 
@@ -380,7 +373,7 @@ public class HttpServerVerticle extends AbstractVerticle {
      */
     private void sendValidationError(RoutingContext ctx, String errorMessage, String requestId) {
         JsonObject errorResponse = new JsonObject()
-            .put("status", "ERROR")
+            .put("status", StatusConstants.ERROR)
             .put("requestId", requestId)
             .put("message", errorMessage);
 

@@ -24,6 +24,9 @@ import it.demo.fabrick.dto.rest.BonificoRestRequestDto;
 import it.demo.fabrick.dto.rest.BonificoRestResponseDto;
 import it.demo.fabrick.mapper.DtoMapper;
 import it.demo.fabrick.error.ErrorCode;
+import it.demo.fabrick.utils.ApiConstants;
+import it.demo.fabrick.utils.EventBusConstants;
+import it.demo.fabrick.utils.StatusConstants;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -47,7 +50,7 @@ public class BonificoVerticle extends AbstractVerticle {
 
 		log.info("start - lanciato");
 
-		String bus = "bonifico_bus";
+		String bus = EventBusConstants.BONIFICO_BUS;
 		log.debug("mi sottoscrivo al bus '{}' ..", bus);
 		vertx.eventBus().consumer(bus, message -> {
 
@@ -146,7 +149,7 @@ public class BonificoVerticle extends AbstractVerticle {
 						log.info("bodyAsString: {}", bodyAsString);
 
 						// Return success response
-						BonificoRestResponseDto responseDto = BonificoRestResponseDto.success("PENDING");
+						BonificoRestResponseDto responseDto = BonificoRestResponseDto.success(StatusConstants.STATUS_PENDING);
 						try {
 							String jsonResponse = mapper.writeValueAsString(responseDto);
 							message.reply(jsonResponse);
@@ -180,7 +183,7 @@ public class BonificoVerticle extends AbstractVerticle {
 		String accountId = extractAccountIdFromUrl(transferUrl);
 		if (accountId == null) {
 			log.error("Could not extract accountId from URL: {}", transferUrl);
-			sendErrorResponse(message, "Could not extract account ID for validation enquiry");
+			sendErrorResponse(message, StatusConstants.ERROR_CANNOT_EXTRACT_ACCOUNT_ID);
 			return;
 		}
 
@@ -191,7 +194,7 @@ public class BonificoVerticle extends AbstractVerticle {
 
 		// Build transactions URL
 		String transactionsUrl = String.format(
-			"https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/%s/transactions?fromAccountingDate=%s&toAccountingDate=%s",
+			ApiConstants.TRANSACTIONS_URL_FORMAT,
 			accountId, fromDate, toDate
 		);
 
@@ -214,7 +217,7 @@ public class BonificoVerticle extends AbstractVerticle {
 
 					if (statusCode >= 300) {
 						log.error("Failed to retrieve transactions for validation enquiry, HTTP {}: {}", statusCode, bodyAsString);
-						sendErrorResponse(message, "Transfer status unknown - validation enquiry failed. Please retry later.");
+						sendErrorResponse(message, StatusConstants.ERROR_VALIDATION_ENQUIRY_FAILED);
 						return;
 					}
 
@@ -225,20 +228,20 @@ public class BonificoVerticle extends AbstractVerticle {
 
 						if (found) {
 							log.info("Validation enquiry found matching transfer - money transfer was executed successfully");
-							BonificoRestResponseDto responseDto = BonificoRestResponseDto.success("EXECUTED");
+							BonificoRestResponseDto responseDto = BonificoRestResponseDto.success(StatusConstants.STATUS_EXECUTED);
 							String jsonResponse = mapper.writeValueAsString(responseDto);
 							message.reply(jsonResponse);
 						} else {
 							log.warn("Validation enquiry did not find matching transfer - money transfer was NOT executed");
-							sendErrorResponse(message, "Transfer failed - no matching transaction found. Please retry.");
+							sendErrorResponse(message, StatusConstants.ERROR_NO_MATCHING_TRANSACTION);
 						}
 					} catch (JsonProcessingException e) {
 						log.error("Error parsing transactions response for validation enquiry", e);
-						sendErrorResponse(message, "Transfer status unknown - error parsing validation enquiry");
+						sendErrorResponse(message, StatusConstants.ERROR_VALIDATION_PARSING_FAILED);
 					}
 				} else {
 					log.error("Failed to call transactions API for validation enquiry", ar.cause());
-					sendErrorResponse(message, "Transfer status unknown - validation enquiry unavailable. Please retry later.");
+					sendErrorResponse(message, StatusConstants.ERROR_VALIDATION_UNAVAILABLE);
 				}
 			});
 	}
@@ -257,7 +260,7 @@ public class BonificoVerticle extends AbstractVerticle {
 			return false;
 		}
 
-		double expectedAmount = originalRequest.getAmount();
+		java.math.BigDecimal expectedAmount = originalRequest.getAmount();
 		String expectedCurrency = originalRequest.getCurrency();
 		String expectedDescription = originalRequest.getDescription();
 
@@ -266,11 +269,14 @@ public class BonificoVerticle extends AbstractVerticle {
 
 		for (ListaTransactionDto transaction : transactionDto.getPayload().getList()) {
 			// For outgoing transfers, amount should be negative
-			boolean isOutgoing = transaction.getAmount() < 0;
+			boolean isOutgoing = transaction.getAmount().compareTo(java.math.BigDecimal.ZERO) < 0;
 
 			// Match by absolute amount (allowing for small rounding differences)
 			// Compare absolute values since outgoing transfers have negative amounts
-			boolean amountMatches = Math.abs(Math.abs(transaction.getAmount()) - expectedAmount) < 0.01;
+			java.math.BigDecimal actualAmountAbs = transaction.getAmount().abs();
+			java.math.BigDecimal expectedAmountAbs = expectedAmount.abs();
+			java.math.BigDecimal difference = actualAmountAbs.subtract(expectedAmountAbs).abs();
+			boolean amountMatches = difference.compareTo(new java.math.BigDecimal("0.01")) < 0;
 			boolean currencyMatches = expectedCurrency.equals(transaction.getCurrency());
 			boolean descriptionMatches = expectedDescription != null &&
 				expectedDescription.equals(transaction.getDescription());
@@ -293,7 +299,7 @@ public class BonificoVerticle extends AbstractVerticle {
 	 * Extract accountId from the money transfer URL.
 	 */
 	private String extractAccountIdFromUrl(String url) {
-		// URL format: https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/payments/money-transfers
+		// URL format: {FABRICK_API_BASE}/accounts/{accountId}/payments/money-transfers
 		String[] parts = url.split("/accounts/");
 		if (parts.length < 2) {
 			return null;

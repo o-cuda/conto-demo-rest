@@ -85,7 +85,7 @@ class BonificoVerticleTest {
 		ArrayList<ListaTransactionDto> list = new ArrayList<>();
 
 		ListaTransactionDto outgoingTransfer = new ListaTransactionDto();
-		outgoingTransfer.setAmount(-100.50); // Negative for outgoing
+		outgoingTransfer.setAmount(new java.math.BigDecimal("-100.50")); // Negative for outgoing
 		outgoingTransfer.setCurrency("EUR");
 		outgoingTransfer.setDescription("Test payment");
 		list.add(outgoingTransfer);
@@ -95,7 +95,7 @@ class BonificoVerticleTest {
 
 		// Create request matching the transaction
 		BonificoRestRequestDto request = new BonificoRestRequestDto();
-		request.setAmount(100.50);
+		request.setAmount(new java.math.BigDecimal("100.50"));
 		request.setCurrency("EUR");
 		request.setDescription("Test payment");
 
@@ -117,7 +117,7 @@ class BonificoVerticleTest {
 		ArrayList<ListaTransactionDto> list = new ArrayList<>();
 
 		ListaTransactionDto incomingTransfer = new ListaTransactionDto();
-		incomingTransfer.setAmount(100.50); // Positive for incoming
+		incomingTransfer.setAmount(new java.math.BigDecimal("100.50")); // Positive for incoming
 		incomingTransfer.setCurrency("EUR");
 		list.add(incomingTransfer);
 
@@ -125,7 +125,7 @@ class BonificoVerticleTest {
 		transactionDto.setPayload(payload);
 
 		BonificoRestRequestDto request = new BonificoRestRequestDto();
-		request.setAmount(100.50);
+		request.setAmount(new java.math.BigDecimal("100.50"));
 		request.setCurrency("EUR");
 
 		boolean found = (Boolean) method.invoke(verticle, transactionDto, request);
@@ -145,7 +145,7 @@ class BonificoVerticleTest {
 		ArrayList<ListaTransactionDto> list = new ArrayList<>();
 
 		ListaTransactionDto transfer = new ListaTransactionDto();
-		transfer.setAmount(-100.505); // Slight rounding difference
+		transfer.setAmount(new java.math.BigDecimal("-100.505")); // Slight rounding difference
 		transfer.setCurrency("EUR");
 		list.add(transfer);
 
@@ -153,7 +153,7 @@ class BonificoVerticleTest {
 		transactionDto.setPayload(payload);
 
 		BonificoRestRequestDto request = new BonificoRestRequestDto();
-		request.setAmount(100.50);
+		request.setAmount(new java.math.BigDecimal("100.50"));
 		request.setCurrency("EUR");
 
 		boolean found = (Boolean) method.invoke(verticle, transactionDto, request);
@@ -209,7 +209,7 @@ class BonificoVerticleTest {
 		ArrayList<ListaTransactionDto> list = new ArrayList<>();
 
 		ListaTransactionDto transfer = new ListaTransactionDto();
-		transfer.setAmount(-100.50);
+		transfer.setAmount(new java.math.BigDecimal("-100.50"));
 		transfer.setCurrency("USD"); // Different currency
 		list.add(transfer);
 
@@ -217,7 +217,7 @@ class BonificoVerticleTest {
 		transactionDto.setPayload(payload);
 
 		BonificoRestRequestDto request = new BonificoRestRequestDto();
-		request.setAmount(100.50);
+		request.setAmount(new java.math.BigDecimal("100.50"));
 		request.setCurrency("EUR"); // Request expects EUR
 
 		boolean found = (Boolean) method.invoke(verticle, transactionDto, request);

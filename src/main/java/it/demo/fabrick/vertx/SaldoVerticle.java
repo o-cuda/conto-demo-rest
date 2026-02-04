@@ -17,6 +17,7 @@ import io.vertx.ext.web.client.WebClient;
 import it.demo.fabrick.dto.BalanceDto;
 import it.demo.fabrick.dto.rest.SaldoResponseDto;
 import it.demo.fabrick.error.ErrorCode;
+import it.demo.fabrick.utils.EventBusConstants;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -40,7 +41,7 @@ public class SaldoVerticle extends AbstractVerticle {
 
 		log.info("start - lanciato");
 
-		String bus = "saldo_bus";
+		String bus = EventBusConstants.SALDO_BUS;
 		log.debug("mi sottoscrivo al bus '{}' ..", bus);
 		vertx.eventBus().consumer(bus, message -> {
 

@@ -6,6 +6,7 @@ import it.demo.fabrick.dto.BonificoRequestDto;
 import it.demo.fabrick.dto.rest.BonificoRestRequestDto;
 import it.demo.fabrick.dto.rest.TransazioniResponseDto;
 import it.demo.fabrick.dto.TransactionDto;
+import it.demo.fabrick.utils.StatusConstants;
 
 /**
  * Utility class for DTO mapping operations.
@@ -33,7 +34,7 @@ public class DtoMapper {
 
 		// Map basic fields
 		request.setExecutionDate(LocalDate.now().toString());
-		request.setUri("REMITTANCE_INFORMATION");
+		request.setUri(StatusConstants.FIELD_REMITTANCE_INFORMATION);
 		request.setDescription(restRequest.getDescription());
 		request.setAmount(restRequest.getAmount());
 		request.setCurrency(restRequest.getCurrency());

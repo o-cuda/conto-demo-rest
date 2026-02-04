@@ -17,6 +17,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import it.demo.fabrick.dto.ListaTransactionDto;
+import it.demo.fabrick.utils.EventBusConstants;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -65,7 +66,7 @@ public class TransactionPersistenceVerticle extends AbstractVerticle {
 
 		this.jdbcClient = JDBCClient.createShared(vertx, config);
 
-		String bus = "transaction_persistence_bus";
+		String bus = EventBusConstants.TRANSACTION_PERSISTENCE_BUS;
 		log.debug("Subscribing to event bus address: '{}' ..", bus);
 		vertx.eventBus().consumer(bus, this::handlePersistenceRequest);
 		log.info("TransactionPersistenceVerticle ready to persist transactions");
@@ -250,7 +251,13 @@ public class TransactionPersistenceVerticle extends AbstractVerticle {
 		dto.setOperationId(json.getString("operationId"));
 		dto.setAccountingDate(json.getString("accountingDate"));
 		dto.setValueDate(json.getString("valueDate"));
-		dto.setAmount(json.getDouble("amount"));
+		// Convert JSON number to BigDecimal for monetary precision
+		Object amountValue = json.getValue("amount");
+		if (amountValue instanceof Number) {
+			dto.setAmount(java.math.BigDecimal.valueOf(((Number) amountValue).doubleValue()));
+		} else {
+			dto.setAmount(null);
+		}
 		dto.setCurrency(json.getString("currency"));
 		dto.setDescription(json.getString("description"));
 

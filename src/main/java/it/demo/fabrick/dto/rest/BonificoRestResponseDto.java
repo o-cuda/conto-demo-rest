@@ -1,5 +1,6 @@
 package it.demo.fabrick.dto.rest;
 
+import it.demo.fabrick.utils.StatusConstants;
 import lombok.Data;
 
 /**
@@ -13,7 +14,7 @@ public class BonificoRestResponseDto {
 
     public static BonificoRestResponseDto success(String transferId) {
         BonificoRestResponseDto response = new BonificoRestResponseDto();
-        response.setStatus("OK");
+        response.setStatus(StatusConstants.OK);
         response.setMessage("Transfer executed successfully");
         response.setTransferId(transferId);
         return response;
@@ -21,7 +22,7 @@ public class BonificoRestResponseDto {
 
     public static BonificoRestResponseDto error(String message) {
         BonificoRestResponseDto response = new BonificoRestResponseDto();
-        response.setStatus("ERROR");
+        response.setStatus(StatusConstants.ERROR);
         response.setMessage(message);
         return response;
     }

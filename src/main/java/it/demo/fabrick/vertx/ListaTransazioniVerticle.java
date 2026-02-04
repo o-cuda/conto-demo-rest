@@ -20,6 +20,7 @@ import it.demo.fabrick.dto.TransactionDto;
 import it.demo.fabrick.dto.rest.TransazioniResponseDto;
 import it.demo.fabrick.mapper.DtoMapper;
 import it.demo.fabrick.error.ErrorCode;
+import it.demo.fabrick.utils.EventBusConstants;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -43,7 +44,7 @@ public class ListaTransazioniVerticle extends AbstractVerticle {
 
 		log.info("start - lanciato");
 
-		String bus = "lista_bus";
+		String bus = EventBusConstants.LISTA_BUS;
 		log.debug("mi sottoscrivo al bus '{}' ..", bus);
 		vertx.eventBus().consumer(bus, message -> {
 
@@ -178,7 +179,7 @@ public class ListaTransazioniVerticle extends AbstractVerticle {
 				.put("transactions", transactionsArray);
 
 			// Send to persistence verticle (fire-and-forget)
-			vertx.eventBus().send("transaction_persistence_bus", persistenceMessage);
+			vertx.eventBus().send(EventBusConstants.TRANSACTION_PERSISTENCE_BUS, persistenceMessage);
 
 			log.debug("Async persistence triggered for requestId: {}", requestId);
 

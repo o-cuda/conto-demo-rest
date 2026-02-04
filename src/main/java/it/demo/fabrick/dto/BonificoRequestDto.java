@@ -1,5 +1,6 @@
 package it.demo.fabrick.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import io.vertx.core.json.JsonObject;
@@ -12,7 +13,7 @@ public class BonificoRequestDto {
 	public String executionDate;
 	public String uri;
 	public String description;
-	public double amount;
+	public BigDecimal amount;
 	public String currency;
 	public boolean isUrgent;
 	public boolean isInstant;

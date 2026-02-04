@@ -1,5 +1,6 @@
 package it.demo.fabrick.dto;
 
+import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
@@ -10,7 +11,7 @@ public class ListaTransactionDto {
 	public String accountingDate;
 	public String valueDate;
 	public Type type;
-	public double amount;
+	public BigDecimal amount;
 	public String currency;
 	public String description;
 

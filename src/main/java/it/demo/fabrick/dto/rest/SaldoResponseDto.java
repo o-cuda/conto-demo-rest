@@ -1,5 +1,6 @@
 package it.demo.fabrick.dto.rest;
 
+import java.math.BigDecimal;
 import lombok.Data;
 
 /**
@@ -7,8 +8,8 @@ import lombok.Data;
  */
 @Data
 public class SaldoResponseDto {
-    private double balance;
-    private double availableBalance;
+    private BigDecimal balance;
+    private BigDecimal availableBalance;
     private String currency;
 
     public static SaldoResponseDto fromBalanceDto(it.demo.fabrick.dto.BalanceDto.Payload payload) {

@@ -119,13 +119,6 @@
       <version>0.9.8</version>
     </dependency>
 
-    <!-- o.cuda -->
-    <dependency>
-      <groupId>com.jsoniter</groupId>
-      <artifactId>jsoniter</artifactId>
-      <version>0.9.23</version>
-    </dependency>
-
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>

@@ -1,5 +1,6 @@
 package it.demo.fabrick.dto.rest;
 
+import java.math.BigDecimal;
 import lombok.Data;
 
 /**
@@ -9,7 +10,7 @@ import lombok.Data;
 public class BonificoRestRequestDto {
     private Creditor creditor;
     private String description;
-    private double amount;
+    private BigDecimal amount;
     private String currency;
     private String executionDate;
     private String feeType;

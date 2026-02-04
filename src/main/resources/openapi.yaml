@@ -1,0 +1,285 @@
+openapi: 3.0.0
+info:
+  title: Conto Demo Banking API
+  description: REST API for banking operations through Fabrick API
+  version: 2.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Accounts
+    description: Account operations
+  - name: Transactions
+    description: Transaction operations
+  - name: Payments
+    description: Payment operations
+
+paths:
+  /api/accounts/balance:
+    get:
+      tags:
+        - Accounts
+      summary: Get account balance
+      description: Retrieve the current balance for the configured account
+      operationId: getBalance
+      responses:
+        "200":
+          description: Balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/accounts/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get account transactions
+      description: Retrieve transactions for the configured account within a date range
+      operationId: getTransactions
+      parameters:
+        - name: fromAccountingDate
+          in: query
+          required: true
+          description: Start date format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+          example: "2019-01-01"
+        - name: toAccountingDate
+          in: query
+          required: true
+          description: End date - format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+          example: "2019-12-31"
+      responses:
+        "200":
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/accounts/payments/money-transfers:
+    post:
+      tags:
+        - Payments
+      summary: Execute money transfer
+      description: Create and execute a money transfer bonifico from the configured account
+      operationId: createMoneyTransfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoneyTransferRequest"
+            example:
+              creditor:
+                name: "John Doe"
+                account:
+                  accountCode: "IT23A0336844430152923804661"
+                  bicCode: "SELBIT2BXXX"
+              description: "Payment invoice 123/45"
+              amount: 123.45
+              currency: "EUR"
+              executionDate: "2025-02-03"
+              feeType: "SHA"
+      responses:
+        "200":
+          description: Money transfer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransferResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    BalanceResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["OK", "ERROR"]
+        payload:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+              description: Balance date
+            balance:
+              type: number
+              format: double
+              description: Current balance
+            availableBalance:
+              type: number
+              format: double
+              description: Available balance
+            currency:
+              type: string
+              description: Balance currency
+
+    TransactionsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["OK", "ERROR"]
+        payload:
+          type: object
+          properties:
+            list:
+              type: array
+              items:
+                type: object
+                properties:
+                  transactionId:
+                    type: string
+                  operationId:
+                    type: string
+                  accountingDate:
+                    type: string
+                    format: date
+                  valueDate:
+                    type: string
+                    format: date
+                  amount:
+                    type: number
+                    format: double
+                  currency:
+                    type: string
+                  description:
+                    type: string
+
+    MoneyTransferRequest:
+      type: object
+      required:
+        - creditor
+        - description
+        - amount
+        - currency
+        - executionDate
+      properties:
+        creditor:
+          type: object
+          required:
+            - name
+            - account
+          properties:
+            name:
+              type: string
+              description: Creditor name
+            account:
+              type: object
+              required:
+                - accountCode
+              properties:
+                accountCode:
+                  type: string
+                  description: IBAN account code
+                bicCode:
+                  type: string
+                  description: SWIFT/BIC code
+        description:
+          type: string
+          description: Transfer description
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          description: Transfer amount
+        currency:
+          type: string
+          description: Currency code
+          default: EUR
+        executionDate:
+          type: string
+          format: date
+          description: Execution date - format YYYY-MM-DD
+        feeType:
+          type: string
+          enum: ["SHA", "OUR", "BEN"]
+          description: Fee type
+        feeAccountId:
+          type: string
+          description: Account for fees
+        taxRelief:
+          type: object
+          description: Tax relief information
+          properties:
+            taxReliefId:
+              type: string
+            isCondoUpgrade:
+              type: boolean
+            creditorFiscalCode:
+              type: string
+            beneficiaryType:
+              type: string
+            naturalPersonBeneficiary:
+              type: object
+              properties:
+                fiscalCode1:
+                  type: string
+
+    MoneyTransferResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["OK", "ERROR"]
+        payload:
+          type: object
+          properties:
+            moneyTransferId:
+              type: string
+              description: Unique transfer ID
+            status:
+              type: string
+              description: Transfer status
+            creationDate:
+              type: string
+              format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["ERROR"]
+        requestId:
+          type: string
+          format: uuid
+          description: Request ID for tracing
+        message:
+          type: string
+          description: Error message

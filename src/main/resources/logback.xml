@@ -1,0 +1,114 @@
+<configuration scan="true" scanPeriod="20 seconds">
+    
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+
+	<!-- external inclusion -->
+	<include resource="logging-extend.xml" />
+	
+	<if condition='isDefined("json_logger")'>
+	    <then>
+	        <property name="internal_conf_json_logger" value="${json_logger}" />
+	    </then>
+	    <else>
+	        <property name="internal_conf_json_logger" value="true" />
+	    </else>
+	</if>
+	
+	<if condition='isDefined("async_logger")'>
+	    <then>
+	        <property name="internal_conf_async_logger" value="${async_logger}" />
+	    </then>
+	    <else>
+	        <property name="internal_conf_async_logger" value="false" />
+	    </else>
+	</if>
+	
+	
+	<!-- DEFAULTS PROPERTIES-->
+	<timestamp key="logFileTimestamp" datePattern="yyyy_MM_dd_HHmm" />
+	<property name="log.pattern"
+		value=" %d{dd/MM/yyyy HH:mm:ss.SSS} - %-5level [%thread] [%class{30}:%method:%line] %msg%n" />
+
+
+	<conversionRule conversionWord="vcl"
+						 converterClass="io.reactiverse.contextual.logging.LogbackConverter"/>
+
+	<!-- APPENDERS -->
+	<appender name="STANDARD-CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		
+		<encoder  class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>%d{dd/MM/yyyy HH:mm:ss.SSS} - %highlight(%-5level) %green([%thread]) %red([%vcl{requestId}]) %blue([%class{30}:%method:%line]) %msg%n</pattern>
+
+		</encoder>
+	</appender>
+	
+    <appender name="LOGSTASH-APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+    	
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"pod":"${HOSTNAME}"}</customFields>
+            <timestampPattern>dd/MM/yyyy HH:mm:ss.SSS</timestampPattern>
+            <includeCallerData>true</includeCallerData>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+
+                <shortenedClassNameLength>20</shortenedClassNameLength>
+                <rootCauseFirst>true</rootCauseFirst>
+
+
+            </throwableConverter>
+
+			  <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
+					  <pattern>
+						  {
+						  "CorrelationId": "%vcl{requestId}"
+						  }
+					  </pattern>
+			  </provider>
+
+        </encoder>
+    </appender>
+    
+    <appender name="ASYNC-STANDARD-CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="STANDARD-CONSOLE" />
+		<neverBlock>true</neverBlock>
+		<queueSize>500</queueSize>
+    </appender>
+    
+    <appender name="ASYNC-LOGSTASH-APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOGSTASH-APPENDER" />
+		<neverBlock>true</neverBlock>
+		<queueSize>500</queueSize>
+    </appender>
+    
+	<root level="${logger_level:-WARN}">
+		
+		<!-- <if condition='isDefined("no_json_logger")'> -->
+		<if condition='property("internal_conf_json_logger").contains("true")'>
+		<then>
+			
+			<!-- <if condition='isDefined("async_logger")'> -->
+			<if condition='property("internal_conf_async_logger").contains("true")'>
+			<then>
+				<appender-ref ref="ASYNC-LOGSTASH-APPENDER" />
+			</then>
+			<else>
+				<appender-ref ref="LOGSTASH-APPENDER"/>
+			</else>
+			</if>
+				
+		</then>
+		<else>
+		
+		<!-- <if condition='isDefined("async_logger")'> -->
+			<if condition='property("internal_conf_async_logger").contains("true")'>
+			<then>
+				<appender-ref ref="ASYNC-STANDARD-CONSOLE" />
+			</then>
+			<else>
+				<appender-ref ref="STANDARD-CONSOLE"/>
+			</else>
+			</if>
+			
+		</else>
+		</if>
+	</root>
+</configuration>

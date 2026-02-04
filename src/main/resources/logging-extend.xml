@@ -1,0 +1,25 @@
+<included>
+
+	<property name="logger_level" value="DEBUG" />
+
+	<!-- Application log level: INFO for production, DEBUG for development -->
+	<logger name="it.demo" level="INFO" />
+
+	<property name="json_logger" value="false" />
+	<property name="async_logger" value="false" />
+
+	<!-- Vert.x JDBC client produces verbose DEBUG logs, set to INFO -->
+	<logger name="io.vertx.ext.jdbc" level="INFO" />
+	<logger name="io.vertx.ext.sql" level="INFO" />
+	<logger name="io.netty" level="INFO" />
+	<logger name="com.zaxxer" level="INFO" />
+	<logger name="org.hibernate" level="INFO" />
+	<logger name="org.springframework" level="INFO" />
+	<logger name="org.springframework.context.annotation" level="INFO" />
+	<logger name="org.apache" level="INFO" />
+	<logger name="com.github.ziplet" level="INFO" />
+	<logger name="com.ibm.ws.webcontainer.servlet" level="INFO" />
+	<logger name="org.apache.solr.client.solrj" level="INFO" />
+	<logger name="org.springframework.beans.factory.annotation" level="INFO" />
+	<logger name="jakarta.servlet" level="ERROR" />
+</included>

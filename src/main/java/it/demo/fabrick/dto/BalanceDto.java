@@ -1,7 +1,7 @@
 package it.demo.fabrick.dto;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
 
 import lombok.Data;
 
@@ -9,7 +9,7 @@ import lombok.Data;
 public class BalanceDto {
 
 	public String status;
-	public ArrayList<Error> error;
+	public List<Error> error;
 	public Payload payload;
 	
 	@Data

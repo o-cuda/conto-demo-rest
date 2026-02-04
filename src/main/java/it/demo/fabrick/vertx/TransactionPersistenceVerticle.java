@@ -156,7 +156,7 @@ public class TransactionPersistenceVerticle extends AbstractVerticle {
 				}
 
 				// Build set of existing transactionIds
-				Set<String> existingIds = new HashSet<>();
+				Set<String> existingIds = new HashSet<String>();
 				queryRes.result().getRows().forEach(row ->
 					existingIds.add(row.getString("TRANSACTION_ID"))
 				);
@@ -200,7 +200,7 @@ public class TransactionPersistenceVerticle extends AbstractVerticle {
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			""";
 
-		List<JsonArray> batchParams = new ArrayList<>();
+		List<JsonArray> batchParams = new ArrayList<JsonArray>();
 
 		for (ListaTransactionDto dto : transactions) {
 			JsonArray params = new JsonArray()

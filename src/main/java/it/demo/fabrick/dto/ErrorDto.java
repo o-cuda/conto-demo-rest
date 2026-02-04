@@ -1,6 +1,6 @@
 package it.demo.fabrick.dto;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import lombok.Data;
 
@@ -8,7 +8,7 @@ import lombok.Data;
 public class ErrorDto {
 
 	public String status;
-	public ArrayList<AnErrorDto> errors;
+	public List<AnErrorDto> errors;
 	public Object payload;
 
 }

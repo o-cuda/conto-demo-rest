@@ -1,6 +1,8 @@
 package it.demo.fabrick.vertx;
 
 import java.io.InputStream;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -21,6 +23,8 @@ import it.demo.fabrick.error.ErrorCode;
 import it.demo.fabrick.utils.ApiConstants;
 import it.demo.fabrick.utils.EventBusConstants;
 import it.demo.fabrick.utils.StatusConstants;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -37,13 +41,16 @@ public class HttpServerVerticle extends AbstractVerticle {
     private final ObjectMapper objectMapper;
     private final int httpPort;
     private final String accountId;
+    private final Validator validator;
 
     public HttpServerVerticle(ObjectMapper objectMapper,
                               @Value("${http.server.port:8080}") int httpPort,
-                              @Value("${fabrick.accountId}") String accountId) {
+                              @Value("${fabrick.accountId}") String accountId,
+                              Validator validator) {
         this.objectMapper = objectMapper;
         this.httpPort = httpPort;
         this.accountId = accountId;
+        this.validator = validator;
     }
 
     // API endpoints from ApiConstants
@@ -192,10 +199,14 @@ public class HttpServerVerticle extends AbstractVerticle {
             ObjectMapper mapper = objectMapper;
             BonificoRestRequestDto request = mapper.readValue(body, BonificoRestRequestDto.class);
 
-            // Basic validation - use BigDecimal comparison
-            if (request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                log.warn("Invalid transfer amount: {} for requestId: {}", request.getAmount(), requestId);
-                sendValidationError(ctx, "Invalid amount: must be greater than zero", requestId);
+            // Bean Validation using Jakarta validation
+            Set<ConstraintViolation<BonificoRestRequestDto>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String validationErrors = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining("; "));
+                log.warn("Validation failed for money transfer request: {} for requestId: {}", validationErrors, requestId);
+                sendValidationError(ctx, "Validation failed: " + validationErrors, requestId);
                 return;
             }
 

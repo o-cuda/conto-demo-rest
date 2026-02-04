@@ -139,11 +139,11 @@ components:
               description: Balance date
             balance:
               type: number
-              format: double
+              format: decimal
               description: Current balance
             availableBalance:
               type: number
-              format: double
+              format: decimal
               description: Available balance
             currency:
               type: string
@@ -175,7 +175,7 @@ components:
                     format: date
                   amount:
                     type: number
-                    format: double
+                    format: decimal
                   currency:
                     type: string
                   description:
@@ -215,7 +215,7 @@ components:
           description: Transfer description
         amount:
           type: number
-          format: double
+          format: decimal
           minimum: 0.01
           description: Transfer amount
         currency:

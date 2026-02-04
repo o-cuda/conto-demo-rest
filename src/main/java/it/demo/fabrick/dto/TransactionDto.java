@@ -1,6 +1,6 @@
 package it.demo.fabrick.dto;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,13 +9,13 @@ import lombok.NoArgsConstructor;
 public class TransactionDto {
 
 	public String status;
-	public ArrayList<Error> error;
+	public List<Error> error;
 	public Payload payload;
 
 	@Data
 	@NoArgsConstructor
 	public class Payload {
-		public ArrayList<ListaTransactionDto> list;
+		public List<ListaTransactionDto> list;
 	}
 
 	@Data

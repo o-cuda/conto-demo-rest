@@ -42,7 +42,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
-    
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.data</groupId>
       <artifactId>spring-data-commons</artifactId>
@@ -174,7 +178,7 @@
 
   <build>
     <finalName>conto-demo</finalName>
-    
+
     <pluginManagement>
       <plugins>
         <!-- We specify the Maven compiler plugin as we need to set it to Java 21 -->
@@ -195,6 +199,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
+        </plugin>
+        <!-- JaCoCo Maven Plugin for test coverage -->
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.12</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -240,7 +250,28 @@
           </execution>
         </executions>
       </plugin>
-      
+
+      <!-- JaCoCo for test coverage -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>

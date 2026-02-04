@@ -82,7 +82,7 @@ class BonificoVerticleTest {
 		// Create a transaction DTO with a matching outgoing transfer
 		TransactionDto transactionDto = new TransactionDto();
 		TransactionDto.Payload payload = transactionDto.new Payload();
-		ArrayList<ListaTransactionDto> list = new ArrayList<>();
+		ArrayList<ListaTransactionDto> list = new ArrayList<ListaTransactionDto>();
 
 		ListaTransactionDto outgoingTransfer = new ListaTransactionDto();
 		outgoingTransfer.setAmount(new java.math.BigDecimal("-100.50")); // Negative for outgoing
@@ -114,7 +114,7 @@ class BonificoVerticleTest {
 		// Create a transaction DTO with an incoming transfer (positive amount)
 		TransactionDto transactionDto = new TransactionDto();
 		TransactionDto.Payload payload = transactionDto.new Payload();
-		ArrayList<ListaTransactionDto> list = new ArrayList<>();
+		ArrayList<ListaTransactionDto> list = new ArrayList<ListaTransactionDto>();
 
 		ListaTransactionDto incomingTransfer = new ListaTransactionDto();
 		incomingTransfer.setAmount(new java.math.BigDecimal("100.50")); // Positive for incoming
@@ -142,7 +142,7 @@ class BonificoVerticleTest {
 
 		TransactionDto transactionDto = new TransactionDto();
 		TransactionDto.Payload payload = transactionDto.new Payload();
-		ArrayList<ListaTransactionDto> list = new ArrayList<>();
+		ArrayList<ListaTransactionDto> list = new ArrayList<ListaTransactionDto>();
 
 		ListaTransactionDto transfer = new ListaTransactionDto();
 		transfer.setAmount(new java.math.BigDecimal("-100.505")); // Slight rounding difference
@@ -206,7 +206,7 @@ class BonificoVerticleTest {
 
 		TransactionDto transactionDto = new TransactionDto();
 		TransactionDto.Payload payload = transactionDto.new Payload();
-		ArrayList<ListaTransactionDto> list = new ArrayList<>();
+		ArrayList<ListaTransactionDto> list = new ArrayList<ListaTransactionDto>();
 
 		ListaTransactionDto transfer = new ListaTransactionDto();
 		transfer.setAmount(new java.math.BigDecimal("-100.50"));

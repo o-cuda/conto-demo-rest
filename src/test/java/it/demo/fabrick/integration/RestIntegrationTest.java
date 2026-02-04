@@ -14,6 +14,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.junit5.VertxTestContext;
+import it.demo.fabrick.utils.ApiConstants;
 
 /**
  * Integration tests for REST API endpoints.
@@ -45,7 +46,7 @@ class RestIntegrationTest {
     @Test
     @DisplayName("GET /api/accounts/balance - should return balance")
     void testGetBalance(VertxTestContext testContext) {
-        webClient.get("/api/accounts/balance")
+        webClient.get(ApiConstants.REST_BALANCE_ENDPOINT)
             .send(ar -> {
                 if (ar.succeeded()) {
                     var response = ar.result();
@@ -63,7 +64,7 @@ class RestIntegrationTest {
         String fromDate = "2019-01-01";
         String toDate = "2019-04-10";
 
-        webClient.get("/api/accounts/transactions")
+        webClient.get(ApiConstants.REST_TRANSACTIONS_ENDPOINT)
             .addQueryParam("fromAccountingDate", fromDate)
             .addQueryParam("toAccountingDate", toDate)
             .send(ar -> {
@@ -89,11 +90,10 @@ class RestIntegrationTest {
             .put("description", "Test payment")
             .put("amount", 100.50)
             .put("currency", "EUR")
-            .put("executionDate", "2025-01-01")
             .put("feeType", "SHA")
             .put("feeAccountId", "12345678");
 
-        webClient.post("/api/accounts/payments/money-transfers")
+        webClient.post(ApiConstants.REST_MONEY_TRANSFER_ENDPOINT)
             .sendJsonObject(requestBody, ar -> {
                 if (ar.succeeded()) {
                     var response = ar.result();

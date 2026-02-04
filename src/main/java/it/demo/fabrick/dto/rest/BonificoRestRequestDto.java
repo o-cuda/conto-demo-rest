@@ -29,7 +29,6 @@ public class BonificoRestRequestDto {
     @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a valid ISO 4217 code (3 uppercase letters)")
     private String currency;
 
-    private String executionDate;
     private String feeType;
     private String feeAccountId;
     private TaxRelief taxRelief;

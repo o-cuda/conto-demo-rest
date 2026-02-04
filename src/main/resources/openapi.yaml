@@ -100,7 +100,6 @@ paths:
               description: "Payment invoice 123/45"
               amount: 123.45
               currency: "EUR"
-              executionDate: "2025-02-03"
               feeType: "SHA"
       responses:
         "200":
@@ -188,7 +187,6 @@ components:
         - description
         - amount
         - currency
-        - executionDate
       properties:
         creditor:
           type: object
@@ -222,10 +220,6 @@ components:
           type: string
           description: Currency code
           default: EUR
-        executionDate:
-          type: string
-          format: date
-          description: Execution date - format YYYY-MM-DD
         feeType:
           type: string
           enum: ["SHA", "OUR", "BEN"]

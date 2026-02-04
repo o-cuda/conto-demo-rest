@@ -12,8 +12,10 @@ This is a reactive Spring Boot + Vert.x microservice that exposes a REST API for
 - Vert.x Web (REST API server)
 - Java 21 (compiled to Java 21 bytecode)
 - Lombok (managed by Spring Boot, code generation for getters/setters/logging)
+- Jakarta Bean Validation (input validation annotations)
 - JUnit 5 + Mockito (unit testing)
 - Vert.x JUnit5 (async testing support)
+- JaCoCo (test coverage reporting)
 
 **Ports:**
 - Spring Boot/Actuator: 9091
@@ -33,8 +35,11 @@ mvn clean package
 # Build Docker image (automatically builds during package phase)
 mvn clean package docker:build
 
-# Run tests (integration tests - requires server to be running first)
-mvn test
+# Run unit tests
+mvn test -Dtest="**/unit/**/*Test"
+
+# Run integration tests (requires server running first)
+mvn test -Dtest="**/integration/**/*Test"
 ```
 
 **Important**: The default properties location is `/data/application.properties` for Kubernetes deployments. For local development, override with `applicationPropertiesPath` VM argument.
@@ -45,10 +50,10 @@ mvn test
 
 1. HTTP server receives REST requests on port 8080
 2. `HttpServerVerticle` generates UUID (requestId) and parses request parameters
-3. `HttpServerVerticle` builds API URL with hardcoded endpoints and sends JSON message to event bus:
-   - GET /api/accounts/{accountId}/balance → `saldo_bus` → `SaldoVerticle`
-   - GET /api/accounts/{accountId}/transactions → `lista_bus` → `ListaTransazioniVerticle`
-   - POST /api/accounts/{accountId}/payments/money-transfers → `bonifico_bus` → `BonificoVerticle`
+3. `HttpServerVerticle` builds API URL using `ApiConstants` and sends JSON message to event bus:
+   - GET /api/accounts/balance → `EventBusConstants.SALDO_BUS` → `SaldoVerticle`
+   - GET /api/accounts/transactions → `EventBusConstants.LISTA_BUS` → `ListaTransazioniVerticle`
+   - POST /api/accounts/payments/money-transfers → `EventBusConstants.BONIFICO_BUS` → `BonificoVerticle`
 4. Operation verticles call Fabrick APIs via WebClient
 5. Responses are returned as JSON
 
@@ -79,13 +84,40 @@ The application uses `reactiverse-contextual-logging` to maintain request contex
 
 See: `ContoDemoApplication.java:73-89`
 
+### Constants Management
+
+All hardcoded strings have been centralized into constants classes:
+
+**`ApiConstants.java`** - Fabrick API endpoint URLs
+- `FABRICK_API_BASE` - Base URL for sandbox environment
+- `BALANCE_URL_TEMPLATE` - Balance endpoint with {accountId} placeholder
+- `TRANSACTIONS_URL_TEMPLATE` - Transactions endpoint with placeholders
+- `MONEY_TRANSFER_URL_TEMPLATE` - Money transfer endpoint with placeholder
+- `TRANSACTIONS_URL_FORMAT` - String format for validation enquiries
+- `REST_API_BASE` - REST API base path
+- `REST_BALANCE_ENDPOINT` - GET /api/accounts/balance
+- `REST_TRANSACTIONS_ENDPOINT` - GET /api/accounts/transactions
+- `REST_MONEY_TRANSFER_ENDPOINT` - POST /api/accounts/payments/money-transfers
+
+**`EventBusConstants.java`** - Event bus addresses
+- `SALDO_BUS` - "saldo_bus"
+- `LISTA_BUS` - "lista_bus"
+- `BONIFICO_BUS` - "bonifico_bus"
+- `TRANSACTION_PERSISTENCE_BUS` - "transaction_persistence_bus"
+
+**`StatusConstants.java`** - Status codes and messages
+- `OK`, `ERROR` - Response status values
+- `STATUS_PENDING`, `STATUS_EXECUTED`, `STATUS_CANCELED` - Transfer statuses
+- Error message constants for validation failures
+- `FIELD_REMITTANCE_INFORMATION` - Fabrick API field name
+
 ### API Endpoints
 
-The API endpoints are hardcoded (SVIL environment):
+The Fabrick API endpoints (SVIL environment) are defined in `ApiConstants`:
 
-- Balance: `https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/balance`
-- Transactions: `https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/transactions?fromAccountingDate={fromDate}&toAccountingDate={toDate}`
-- Money Transfer: `https://sandbox.platfr.io/api/gbs/banking/v4.0/accounts/{accountId}/payments/money-transfers`
+- Balance: `ApiConstants.BALANCE_URL_TEMPLATE`
+- Transactions: `ApiConstants.TRANSACTIONS_URL_TEMPLATE`
+- Money Transfer: `ApiConstants.MONEY_TRANSFER_URL_TEMPLATE`
 
 ### Configuration Management
 
@@ -94,6 +126,41 @@ The application is designed for multi-environment Kubernetes deployments:
 - Kubernetes default: `/data/application.properties`
 
 Override with `-DapplicationPropertiesPath` VM argument.
+
+## Data Types and Validation
+
+### Monetary Values
+
+**All monetary fields use `BigDecimal` for precision:**
+- `SaldoResponseDto.balance`, `SaldoResponseDto.availableBalance`
+- `BalanceDto.Payload.balance`, `BalanceDto.Payload.availableBalance`
+- `ListaTransactionDto.amount`
+- `BonificoRequestDto.amount`
+- `BonificoRestRequestDto.amount`
+
+Never use `double` or `float` for monetary values.
+
+### Input Validation
+
+The application uses **Jakarta Bean Validation** annotations on DTOs:
+
+**BonificoRestRequestDto validations:**
+- `@NotNull` - creditor, amount
+- `@NotBlank` - description, currency, creditor.name, creditor.account.accountCode
+- `@DecimalMin("0.01")` - amount
+- `@Pattern` - currency (ISO 4217), IBAN format, BIC format, string lengths
+
+**HttpServerVerticle integration:**
+- Injects `Validator` via constructor
+- Validates requests before processing
+- Returns all validation errors at once with descriptive messages
+
+### Generics and Type Safety
+
+All collection types use proper generics:
+- Use `List<>` interface instead of `ArrayList<>` implementation
+- Explicit type parameters: `new HashSet<String>()`, `new ArrayList<JsonArray>()`
+- No raw types allowed
 
 ## Testing
 
@@ -115,11 +182,13 @@ mvn test -Dtest="SaldoVerticleTest"
 - `unit/verticle/` - Verticle initialization and event bus subscription tests
   - `SaldoVerticleTest.java`
   - `ListaTransazioniVerticleTest.java`
+  - `BonificoVerticleTest.java`
 - `unit/dto/DtoSerializationTest.java` - Jackson JSON serialization tests
 
 **Key Test Dependencies:**
 - `vertx-junit5` - Vert.x JUnit 5 extension for async testing
 - `mockito-core` and `mockito-junit-jupiter` - Mocking framework
+- `spring-boot-starter-validation` - Bean Validation support
 
 ### Integration Tests
 
@@ -135,10 +204,24 @@ mvn test -Dtest="**/integration/**/*Test"
 
 Test class: `integration/RestIntegrationTest.java`
 
-Tests REST endpoints:
-- GET /api/accounts/{accountId}/balance
-- GET /api/accounts/{accountId}/transactions
-- POST /api/accounts/{accountId}/payments/money-transfers
+Tests REST endpoints using `ApiConstants`:
+- GET `ApiConstants.REST_BALANCE_ENDPOINT`
+- GET `ApiConstants.REST_TRANSACTIONS_ENDPOINT`
+- POST `ApiConstants.REST_MONEY_TRANSFER_ENDPOINT`
+
+### Test Coverage
+
+**JaCoCo Maven Plugin (v0.8.12)** configured for test coverage:
+
+```bash
+# Generate coverage report
+mvn jacoco:report
+
+# View report
+open target/site/jacoco/index.html
+```
+
+**Known Limitation:** JaCoCo has compatibility issues with Java 21 + Vert.x bytecode instrumentation. Coverage report generation may fail during test phase. For coverage reports, consider using external tools or running with Java 17.
 
 ## Code Conventions
 
@@ -146,13 +229,59 @@ Tests REST endpoints:
 - Verticles are Spring components (autowired in `ContoDemoApplication`)
 - REST API uses JSON request/response format
 - Event bus communication uses `ContoDemoApplication.getDefaultDeliverOptions()` for 10-second timeout
-- API endpoints are hardcoded (no database configuration needed)
+- All API URLs managed through `ApiConstants` - never hardcoded
+- All event bus addresses managed through `EventBusConstants`
+- All status codes and messages managed through `StatusConstants`
+- Use `BigDecimal` for all monetary values
+- Use `List<>` interface instead of `ArrayList<>` implementation
+- Add Bean Validation annotations to all REST request DTOs
 
 ## Known Limitations
 
-- No decimal validation for transfer amounts
+- Test coverage reporting has compatibility issues with Java 21 + Vert.x (JaCoCo limitation)
+- Money transfer `executionDate` is always set to today's date (not user-configurable)
 
 ## Version History
+
+### BigDecimal, Constants, and Validation Refactoring (February 2025)
+
+**Major Changes:**
+- **BigDecimal migration**: All monetary fields converted from `double` to `BigDecimal`
+- **Constants classes created**:
+  - `ApiConstants.java` - Centralized API endpoint URLs
+  - `EventBusConstants.java` - Centralized event bus addresses
+  - `StatusConstants.java` - Centralized status codes and error messages
+- **Bean Validation added**: `spring-boot-starter-validation` dependency added
+- **Input validation enhanced**: Jakarta Bean Validation annotations added to DTOs
+- **Generics fixed**: Replaced raw types with proper generic collections
+- **Dependencies cleaned**: Removed unused `jsoniter` library (Jackson only requirement)
+- **Test coverage configured**: JaCoCo Maven plugin added (v0.8.12)
+- **OpenAPI updated**: Changed schema from `double` to `decimal` for monetary fields
+- **Integration tests updated**: Now use `ApiConstants` instead of hardcoded paths
+
+**Files Modified:**
+- `dto/` - All monetary fields changed to `BigDecimal`, `ArrayList` → `List`
+- `dto/rest/BonificoRestRequestDto.java` - Added Bean Validation annotations, removed `executionDate`
+- `vertx/HttpServerVerticle.java` - Added `Validator` injection, uses constants
+- `vertx/BonificoVerticle.java` - Uses constants for API URLs and event bus addresses
+- `vertx/SaldoVerticle.java` - Uses `EventBusConstants`
+- `vertx/ListaTransazioniVerticle.java` - Uses `EventBusConstants`
+- `vertx/TransactionPersistenceVerticle.java` - Uses `EventBusConstants`
+- `mapper/DtoMapper.java` - Uses `StatusConstants`
+- `utils/` - Created 3 new constants classes
+- `integration/RestIntegrationTest.java` - Uses `ApiConstants`
+- `openapi.yaml` - Updated schema for `decimal` format, removed `executionDate`
+
+**Validation Added:**
+- `@NotNull`, `@NotBlank` for required fields
+- `@DecimalMin("0.01")` for amount validation
+- `@Pattern` for format validation (IBAN, BIC, ISO currency codes)
+- `@Valid` for nested object validation
+
+**Test Results:**
+- All 14 unit tests passing
+- 3 new constants classes created
+- 9 files modified, 93 insertions, 25 deletions
 
 ### Spring Boot 3.2.5 + Java 21 + Vert.x 4.5.11 Upgrade (February 2025)
 
